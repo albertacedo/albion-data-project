@@ -44,8 +44,7 @@ public sealed class MarketService : IAsyncDisposable
     public FlipOptions Options { get; } = new();
     public AlbionRegion Region { get; private set; } = AlbionRegion.Europe;
     public List<string> Watchlist { get; } = new();
-    public string ClientPath { get; set; } =
-        @"C:\Program Files\Albion Data Client\albiondata-client.exe";
+    public string ClientPath { get; set; } = AppPaths.ForkedClientExe;
     public bool AlsoUploadToPublicProject { get; set; }
     public DateTime? LastRefreshUtc { get; private set; }
 
@@ -56,9 +55,7 @@ public sealed class MarketService : IAsyncDisposable
 
     public MarketService(string? dbPath = null)
     {
-        var path = dbPath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "AlbionMarket", "market.db");
+        var path = dbPath ?? AppPaths.DatabaseFile;
 
         Db = new MarketDatabase(path);
         Api = new AlbionApiClient(Region);
@@ -102,7 +99,7 @@ public sealed class MarketService : IAsyncDisposable
         Options.MaxInvestment = (int)GetDouble("maxInvestment", Options.MaxInvestment);
         Options.IncludeListed = Db.GetSetting("includeListed") != "0";
 
-        ClientPath = Db.GetSetting("clientPath") ?? ClientPath;
+        ClientPath = AppPaths.ResolveClientExe(Db.GetSetting("clientPath"));
         AlsoUploadToPublicProject = Db.GetSetting("alsoPublic") == "1";
 
         var list = Db.GetSetting("watchlist");
@@ -277,7 +274,10 @@ public sealed class MarketService : IAsyncDisposable
         {
             FileName = ClientPath,
             Arguments = $"-i \"{ingest}\" -minimize",
-            UseShellExecute = false
+            UseShellExecute = false,
+            // Keeps albiondata-client.log next to the binary instead of in
+            // whatever folder the app happened to be launched from.
+            WorkingDirectory = Path.GetDirectoryName(ClientPath) ?? AppPaths.ClientDir
         };
 
         try

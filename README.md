@@ -33,13 +33,13 @@ Tot queda en una base de dades SQLite local. Cap compte, cap subscripció.
 
 - Windows 10/11
 - .NET SDK 10 (ja instal·lat en aquest equip)
-- `Albion Data Client` instal·lat a `C:\Program Files\Albion Data Client\`
-- Npcap (el client oficial ja l'inclou)
+- El fork d'`albiondata-client` a `..\Client\albiondata-client.exe` (ja compilat)
+- Npcap instal·lat (el sniffer enllaça amb `wpcap.dll`)
 
 ## Posar-lo en marxa
 
 ```powershell
-cd C:\Users\alber\Projects\albion-market
+cd "C:\Users\alber\OneDrive\Documents\Albert\Albion Data Client\Aplicacio"
 dotnet build
 .\run.ps1
 ```
@@ -117,7 +117,7 @@ Així contribueixes al projecte cooperatiu *i* alimentes la teva eina alhora.
 
 ### B. Fork amb sortida a fitxer
 
-A `tools/albiondata-client` hi ha el repositori oficial clonat amb una petita modificació:
+A `..\Client` hi ha el repositori oficial clonat amb una petita modificació:
 un uploader `file://` que escriu cada payload com a JSON Lines.
 
 ```
@@ -130,16 +130,22 @@ Cada línia:
 {"ts":"2026-11-02T10:00:00Z","topic":"marketorders.ingest","data":{"Orders":[...]}}
 ```
 
-Per compilar el fork cal **Go** (no està instal·lat en aquest equip) i el build del frontend:
+El fork ja és compilat a `..\Client\albiondata-client.exe`. Per refer-lo (Go 1.27 i
+gcc/mingw-w64 ja instal·lats en aquest equip):
 
 ```powershell
-cd tools\albiondata-client
-npm --prefix frontend ci
-npm --prefix frontend run build
+cd "C:\Users\alber\OneDrive\Documents\Albert\Albion Data Client\Client"
+cmd /c "npm --prefix frontend ci"
+cmd /c "npm --prefix frontend run build"
+$env:CGO_ENABLED = 1
+$env:CC = "gcc"
+$env:CGO_CFLAGS = "-I$PWD\thirdparty\WpdPack\Include"
+$env:CGO_LDFLAGS = "-L$PWD\thirdparty\WpdPack\Lib\x64"
 go build -o albiondata-client.exe albiondata-client.go
 ```
 
-Mentre no el compilis, la via A ja et dona exactament el mateix resultat.
+`npm run build` és obligatori: el binari incrusta `frontend/dist` amb `go:embed`.
+cgo també ho és, perquè el sniffer enllaça amb `wpcap.dll` (Npcap).
 
 ## Feed NATS (temps real)
 
@@ -176,24 +182,28 @@ Per això l'arquitectura no depèn de l'API per a la interactivitat: el sniffer 
 ## Estructura
 
 ```
-albion-market/
-├── src/
-│   ├── AlbionMarket.Core/          # sense dependència de WPF
-│   │   ├── Models/                 # MarketPrice, MarketOrder, Flip
-│   │   ├── Data/MarketDatabase.cs  # SQLite: prices, orders, items, settings
-│   │   ├── Api/AlbionApiClient.cs  # REST + throttle + reintents
-│   │   ├── Realtime/IngestServer.cs# HTTP mínim per al client
-│   │   ├── Realtime/NatsClient.cs  # protocol NATS a mà
-│   │   ├── Engine/FlipAnalyzer.cs  # càlcul d'oportunitats
-│   │   └── MarketService.cs        # orquestrador
-│   ├── AlbionMarket.App/           # WPF
-│   └── AlbionMarket.Cli/           # harness sense interfície
-├── tools/albiondata-client/        # fork del client oficial (+ uploader file://)
-└── run.ps1
+Albion Data Client\
+├── Aplicacio\                     # aquest repositori (.NET)
+│   ├── src\
+│   │   ├── AlbionMarket.Core\     # sense dependència de WPF
+│   │   │   ├── Models\            # MarketPrice, MarketOrder, Flip
+│   │   │   ├── Data/MarketDatabase.cs  # SQLite: prices, orders, items, settings
+│   │   │   ├── Api/AlbionApiClient.cs  # REST + throttle + reintents
+│   │   │   ├── Realtime/IngestServer.cs# HTTP mínim per al client
+│   │   │   ├── Realtime/NatsClient.cs  # protocol NATS a mà
+│   │   │   ├── Engine/FlipAnalyzer.cs  # càlcul d'oportunitats
+│   │   │   ├── AppPaths.cs        # rutes centrals del producte
+│   │   │   └── MarketService.cs   # orquestrador
+│   │   ├── AlbionMarket.App\      # WPF
+│   │   └── AlbionMarket.Cli\      # harness sense interfície
+│   └── run.ps1
+├── Client\                        # fork d'albiondata-client (+ uploader file://)
+└── Dades\                         # market.db (SQLite)
 ```
 
-Base de dades: `%LOCALAPPDATA%\AlbionMarket\market.db` (SQLite, consultable amb
-DB Browser for SQLite o Python).
+Base de dades: `Dades\market.db` (SQLite, consultable amb DB Browser for SQLite
+o Python). Com que la carpeta viu dins de OneDrive, l'app desactiva el mode WAL i
+fa servir journal `DELETE`: així no es sincronitzen fitxers `-wal`/`-shm` a mitges.
 
 ## CLI
 
@@ -217,7 +227,7 @@ serveix per provar el sniffer sense obrir la interfície gràfica.
 3. **Alertes**: notificació d'escriptori quan un item de la llista superi un ROI.
 4. **Pestanya d'or**: `stats/gold` i el seu historial.
 5. **Import dels bolcs diaris** (`albion-online-data.com/database/`) per omplir l'històric sense gastar API.
-6. **Compilar el fork** amb Go i provar el mode `file://` end-to-end.
+6. **Provat**: fork compilat (Go 1.27 + cgo) i ingesta local funcionant; falta provar el mode `file://` end-to-end.
 
 ## Avís
 

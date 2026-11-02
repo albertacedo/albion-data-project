@@ -11,12 +11,21 @@ namespace AlbionMarket.Core.Data;
 public sealed class MarketDatabase
 {
     private readonly string _connectionString;
+    private readonly bool _cloudSync;
 
     public string FilePath { get; }
+
+    /// <summary>
+    /// True when the database lives in a folder synced by OneDrive/Dropbox/Drive.
+    /// In that case we avoid WAL: the sync engine would happily upload the
+    /// -wal/-shm side files in the middle of a transaction.
+    /// </summary>
+    public bool UsesCloudSyncSafeMode => _cloudSync;
 
     public MarketDatabase(string filePath)
     {
         FilePath = filePath;
+        _cloudSync = AppPaths.IsUnderCloudSync(Path.GetFullPath(filePath));
         var dir = Path.GetDirectoryName(Path.GetFullPath(filePath));
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
@@ -35,7 +44,9 @@ public sealed class MarketDatabase
         var cn = new SqliteConnection(_connectionString);
         cn.Open();
         using var pragma = cn.CreateCommand();
-        pragma.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;";
+        pragma.CommandText = _cloudSync
+            ? "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;"
+            : "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;";
         pragma.ExecuteNonQuery();
         return cn;
     }
