@@ -60,6 +60,8 @@ of every work session and updated at the end — see `AGENTS.md`.
 - [x] *Orders in DB* counter, which always showed 0.
 - [x] Npcap 1.10.6 confirmed working on this machine (wpcap.dll, device
       `\Device\NPF_{DE900BB9-5F2F-4C6B-8572-76EA35DE1A7C}`).
+- [x] Handover page for moving machines: [`docs/handover.md`](handover.md) (what is not
+      in Git, rebuild steps, settings, traps, data snapshot).
 
 ## How to update this page
 

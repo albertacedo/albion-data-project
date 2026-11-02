@@ -10,6 +10,13 @@ and this MkDocs site (`docs/`).
 - **UI strings, log messages and code comments: Catalan** (personal tool, existing style).
 - **Chat with the user: Catalan.**
 
+## New machine
+
+If the app, the database (`Dades/market.db`) or `Client/albiondata-client.exe` are
+missing, read `docs/handover.md` before anything else: it lists what is **not** in Git
+and the exact steps to rebuild or copy it, plus the per-machine traps (port 5099, Npcap,
+PATH, PowerShell execution policy).
+
 ## Session protocol
 
 ### At the start of a session

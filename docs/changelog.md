@@ -56,6 +56,9 @@ First real capture showed absurd values (`T6_BAG` at 420,000,000, `T6_RUNE` at 1
 
 ### Docs
 
+- `handover.md`: new page for continuing on another PC (what is not in Git, rebuild
+  steps, `settings` table, traps, data snapshot). Linked from `AGENTS.md`, `index.md`
+  and the nav.
 - `client.md`: `-nogui`, auto-start, new build size.
 - `data-sources.md`: the 1/10,000 unit and the `-nogui` invocation.
 - `usage.md`: the routine now starts with "open the app, it does the rest".

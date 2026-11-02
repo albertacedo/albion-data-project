@@ -29,6 +29,7 @@ For every item the app shows:
 |---|---|
 | Understand how it fits together | [Architecture](architecture.md) |
 | Install it on a new PC | [Installation](installation.md) |
+| Continue on a different PC | [Moving to another machine](handover.md) |
 | Know where the data comes from | [Data sources](data-sources.md) |
 | Inspect the database | [Database](database.md) |
 | Build the sniffer | [Client](client.md) |

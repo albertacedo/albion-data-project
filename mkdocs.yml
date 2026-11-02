@@ -36,6 +36,7 @@ theme:
 nav:
   - Home: index.md
   - Status: status.md
+  - Moving to another machine: handover.md
   - Architecture: architecture.md
   - Installation: installation.md
   - Data sources: data-sources.md
