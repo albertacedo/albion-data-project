@@ -1,21 +1,21 @@
 # Albion Data Project
 
-Eina personal per consultar el mercat d'Albion Online des del PC, combinant l'API pública
-d'AODP, un fork del sniffer `albiondata-client` i el feed NATS en temps real.
+Personal tool to explore the Albion Online market from a Windows PC, combining the public
+AODP API, a fork of the `albiondata-client` packet sniffer and the real-time NATS feed.
 
-📖 **Documentació completa: <https://albertacedo.github.io/albion-data-project/>**
+📖 **Full documentation: <https://albertacedo.github.io/albion-data-project/>**
 
-## Estructura
+## Layout
 
 ```
 Albion Data Project\
-├── Aplicacio\    aplicació .NET 10 (nucli + WPF + CLI)
-├── Client\       submòdul: fork d'albiondata-client (+ uploader file://)
-├── Dades\        market.db (SQLite, fora del repositori)
-└── docs\         documentació MkDocs
+├── Aplicacio\    .NET 10 application (core + WPF + CLI)
+├── Client\       submodule: albiondata-client fork (+ file:// uploader)
+├── Dades\        market.db (SQLite, not in the repository)
+└── docs\         MkDocs documentation
 ```
 
-## Posar-lo en marxa
+## Run it
 
 ```powershell
 cd Aplicacio
@@ -23,22 +23,27 @@ dotnet build
 .\run.ps1
 ```
 
-Requisits i compilació del sniffer: [docs/instalacio.md](docs/instalacio.md).
+Requirements and how to build the sniffer: [docs/installation.md](docs/installation.md).
 
-## Documentació local
+## Documentation locally
 
 ```powershell
 python -m pip install --user mkdocs-material
 python -m mkdocs serve
 ```
 
-## Clonar
+## Clone
 
 ```powershell
 git clone --recurse-submodules https://github.com/albertacedo/albion-data-project.git
 ```
 
-## Avís
+## Session protocol
 
-Projecte no oficial, sense cap relació amb Sandbox Interactive. Només llegeix i analitza
-dades del mercat.
+Open tasks live in [docs/status.md](docs/status.md) and the workflow for each work session
+is described in [AGENTS.md](AGENTS.md).
+
+## Disclaimer
+
+Unofficial project, not affiliated with Sandbox Interactive. It only reads and analyses
+market data.

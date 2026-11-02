@@ -1,5 +1,5 @@
 site_name: Albion Data Project
-site_description: Eina personal de mercat per a Albion Online (API AODP + sniffer propi + NATS)
+site_description: Personal Albion Online market tool (AODP API + own sniffer + NATS)
 site_url: https://albertacedo.github.io/albion-data-project/
 repo_url: https://github.com/albertacedo/albion-data-project
 repo_name: albertacedo/albion-data-project
@@ -9,7 +9,7 @@ docs_dir: docs
 
 theme:
   name: material
-  language: ca
+  language: en
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -17,14 +17,14 @@ theme:
       accent: amber
       toggle:
         icon: material/weather-night
-        name: Mode fosc
+        name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: indigo
       accent: amber
       toggle:
         icon: material/weather-sunny
-        name: Mode clar
+        name: Switch to light mode
   features:
     - navigation.sections
     - navigation.top
@@ -34,15 +34,16 @@ theme:
     - toc.follow
 
 nav:
-  - Inici: index.md
-  - Arquitectura: arquitectura.md
-  - Instal·lació: instalacio.md
-  - Fonts de dades: fonts-de-dades.md
-  - Base de dades: base-de-dades.md
-  - Client (sniffer): client-sniffer.md
-  - Ús diari: us-diar.md
-  - Properes passes: properes-passes.md
-  - Registre del projecte: registre.md
+  - Home: index.md
+  - Status: status.md
+  - Architecture: architecture.md
+  - Installation: installation.md
+  - Data sources: data-sources.md
+  - Database: database.md
+  - Client (sniffer): client.md
+  - Usage: usage.md
+  - Roadmap: roadmap.md
+  - Changelog: changelog.md
 
 markdown_extensions:
   - admonition

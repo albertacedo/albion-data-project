@@ -1,42 +1,21 @@
-# Albion Market
+# Albion Market (application)
 
-Eina personal per consultar el mercat d'Albion Online des del PC, amb tres fonts de dades
-que es poden combinar:
+The .NET 10 side of **Albion Data Project**: a WPF desktop app plus a CLI that merge the
+AODP REST API, a local packet sniffer and the public NATS feed into one SQLite database and
+compute cross-city opportunities.
 
-1. **API pública d'AODP** (`europe|west|east.albion-online-data.com`) — instantànies de preus.
-2. **El teu propi sniffer** — el client oficial (`albiondata-client.exe`) apuntat a aquesta app.
-3. **Feed NATS públic** — el canal en temps real que fan servir les eines de pagament.
+Full documentation (architecture, data sources, database, roadmap):
+**<https://albertacedo.github.io/albion-data-project/>**
 
-Tot queda en una base de dades SQLite local. Cap compte, cap subscripció.
-
-```
-            ┌──────────────────────────────┐
-            │  Albion Online (el teu PC)   │
-            └──────────────┬───────────────┘
-                           │ UDP (Photon)
-                           ▼
-            ┌──────────────────────────────┐        ┌─────────────────────┐
-            │  albiondata-client.exe       │───────►│  API REST AODP      │
-            │  -i http://localhost:5099    │        │  (snapshots)        │
-            └──────────────┬───────────────┘        └──────────┬──────────┘
-                           │ POST /marketorders.ingest          │
-                           ▼                                    │
-   ┌───────────────────────────────────────────────────────────▼──────────┐
-   │                        AlbionMarket.exe (WPF)                        │
-   │  IngestServer ──► SQLite ◄── AlbionApiClient ◄── NatsClient          │
-   │                       │                                              │
-   │                       └──► FlipAnalyzer ──► taula d'oportunitats     │
-   └──────────────────────────────────────────────────────────────────────┘
-```
-
-## Requisits
+## Requirements
 
 - Windows 10/11
-- .NET SDK 10 (ja instal·lat en aquest equip)
-- El fork d'`albiondata-client` a `..\Client\albiondata-client.exe` (ja compilat)
-- Npcap instal·lat (el sniffer enllaça amb `wpcap.dll`)
+- .NET SDK 10
+- The sniffer binary at `..\Client\albiondata-client.exe` (see
+  [Client](https://albertacedo.github.io/albion-data-project/client/))
+- Npcap (the sniffer links against `wpcap.dll`)
 
-## Posar-lo en marxa
+## Run
 
 ```powershell
 cd "C:\Users\alber\OneDrive\Documents\Albert\OpenCode\Albion Data Project\Aplicacio"
@@ -44,166 +23,110 @@ dotnet build
 .\run.ps1
 ```
 
-O manualment:
+Or `dotnet run --project src\AlbionMarket.App`.
 
-```powershell
-dotnet run --project src\AlbionMarket.App
-```
+The first run downloads the item catalogue (~11,000 names) and asks the API for prices.
 
-La primera execució baixa el catàleg d'items (~11.000 noms) i demana preus a l'API.
+## The two ways of selling
 
-## Pestanyes
+The API returns four prices per item and city. They are not interchangeable:
 
-| Pestanya | Què fa |
-|---|---|
-| **Oportunitats** | Compravenda entre ciutats: on comprar, on vendre, marge net i ROI, amb l'edat de cada preu. |
-| **Preus** | Consulta un item concret a totes les ciutats. |
-| **Sniffer local** | Inicia/atura el client oficial apuntant a aquesta app, o connecta el feed NATS. |
-| **Configuració** | Servidor, taxes, inversió màxima, ruta del client i llista de seguiment. |
-
-## Les dues maneres de vendre (llegeix això)
-
-L'API retorna quatre preus per item i ciutat. No són intercanviables:
-
-| Camp | Significat | Quan l'uses |
+| Field | Meaning | When you use it |
 |---|---|---|
-| `sell_price_min` | Ordre de venda més barata | **Compres** (pagues aquest preu) |
-| `buy_price_max` | Ordre de compra més alta | **Vens a l'instant** (reps aquest preu) |
-| `buy_price_min` | Ordre de compra més barata | Referència (t'hi hauries de posar per sobre) |
-| `sell_price_max` | Ordre de venda més cara | Referència |
+| `sell_price_min` | cheapest sell order | **buying** (you pay this) |
+| `buy_price_max` | highest buy order | **instant sale** (you receive this) |
+| `buy_price_min` | cheapest buy order | reference (undercut it) |
+| `sell_price_max` | most expensive sell order | reference |
 
-Per això l'app calcula **dues** xifres:
+So the app computes **two** numbers:
 
-- **NET/UT (instantani)**: comprens a `sell_price_min` d'una ciutat i vens a `buy_price_max` d'una altra. Es ven segur, marge més baix.
-- **NET LISTAT**: comprens igual però poses la teva pròpia ordre de venda sota `sell_price_min`. Marge més alt, pot no vendre's.
+- **NET / INSTANT**: buy at one city's `sell_price_min`, sell into another city's
+  `buy_price_max`. It sells for sure, lower margin.
+- **NET LISTED**: buy the same way but place your own sell order under `sell_price_min`.
+  Bigger margin, might not sell.
 
-Cada costat porta la seva pròpia data. L'app descarta el que superi `Antiguitat màx.` (48 h per defecte):
-un preu de fa cinc dies no és una oportunitat, és un parany.
+Each side carries its own date. Anything older than **Max age** (48 h by default) is
+discarded: a five-day-old price is not an opportunity, it is a trap.
 
 ## Taxes
 
-Configurables a la pestanya de configuració:
+Configurable in the settings tab:
 
-- Taxa de mercat: **4%** amb Premium, **8%** sense.
-- *Setup fee* de les ordres de venda: **2,5%**.
+- Market fee: **4 %** with Premium, **8 %** without.
+- Sell-order setup fee: **2.5 %**.
 
-Verifica els valors actuals al joc: canvien amb els pedaços.
+Verify them in game: they change with patches.
 
-## El sniffer propi
+## Tabs
 
-Hi ha dues integrals, totes dues suportades per aquest codi:
+| Tab | What it does |
+|---|---|
+| **Opportunities** | Cross-city flipping grid: where to buy, where to sell, net margin and ROI, with the age of each price. |
+| **Prices** | One item across all cities. |
+| **Local sniffer** | Start/stop the client pointing at this app, or connect the NATS feed. |
+| **Settings** | Region, taxes, max investment, client path and watchlist. |
 
-### A. Client oficial apuntant a l'app (recomanat)
+## The sniffer
 
-L'app executa:
+### A. Client pointing at the app (recommended)
 
 ```
 albiondata-client.exe -i "http://localhost:5099" -minimize
 ```
 
-El client fa `POST http://localhost:5099/marketorders.ingest` amb el JSON de les ordres
-que has obert al mercat del joc. L'app les desa, recalcula els preus agregats i actualitza
-les oportunitats. **No cal fork ni compilar res.**
+The client POSTs to `http://localhost:5099/marketorders.ingest`; the app stores the orders,
+recomputes aggregates and refreshes opportunities. Add
+`https+pow://pow.europe.albion-online-data.com` after a comma to also contribute to the
+public project.
 
-Si actives "També enviar les meves dades al projecte públic", l'argument passa a ser:
+### B. Fork with file output
 
-```
--i "http://localhost:5099,https+pow://pow.europe.albion-online-data.com"
-```
-
-Així contribueixes al projecte cooperatiu *i* alimentes la teva eina alhora.
-
-> Important: el client només captura el que obres al mercat. Si no mires un item, no en tens el preu.
-
-### B. Fork amb sortida a fitxer
-
-A `..\Client` hi ha el repositori oficial clonat amb una petita modificació:
-un uploader `file://` que escriu cada payload com a JSON Lines.
+The fork in `..\Client` adds a `file://` uploader:
 
 ```
 albiondata-client.exe -i "file://C:/albion/orders.jsonl"
 ```
 
-Cada línia:
+Each line: `{"ts":"…","topic":"marketorders.ingest","data":{"Orders":[...]}}`.
 
-```json
-{"ts":"2026-11-02T10:00:00Z","topic":"marketorders.ingest","data":{"Orders":[...]}}
-```
+## NATS
 
-El fork ja és compilat a `..\Client\albiondata-client.exe`. Per refer-lo (Go 1.27 i
-gcc/mingw-w64 ja instal·lats en aquest equip):
-
-```powershell
-cd "C:\Users\alber\OneDrive\Documents\Albert\OpenCode\Albion Data Project\Client"
-cmd /c "npm --prefix frontend ci"
-cmd /c "npm --prefix frontend run build"
-$env:CGO_ENABLED = 1
-$env:CC = "gcc"
-$env:CGO_CFLAGS = "-I$PWD\thirdparty\WpdPack\Include"
-$env:CGO_LDFLAGS = "-L$PWD\thirdparty\WpdPack\Lib\x64"
-go build -o albiondata-client.exe albiondata-client.go
-```
-
-`npm run build` és obligatori: el binari incrusta `frontend/dist` amb `go:embed`.
-cgo també ho és, perquè el sniffer enllaça amb `wpcap.dll` (Npcap).
-
-## Feed NATS (temps real)
-
-Credencials públiques, sense registre:
+Public credentials, no sign-up:
 
 ```
 nats://public:thenewalbiondata@nats.albion-online-data.com:34222   # Europe
 ```
 
-Temes: `marketorders.deduped`, `markethistories.deduped`, `goldprices.deduped`.
-L'app se subscriu al primer des del botó "Connectar NATS" i desa les ordres igual que les del sniffer.
-El client NATS és una implementació mínima del protocol de text (sense dependències).
+Subjects: `marketorders.deduped`, `markethistories.deduped`, `goldprices.deduped`.
+`marketorders.deduped` sends **one order per message** with a **numeric** `LocationId`; the
+client handles both shapes.
 
-## Límit de peticions (important)
+## Rate limits
 
-El 2 de novembre de 2026 l'API d'Europa responia:
+On 2 Nov 2026 Europe answered `ratelimit-limit: 1` with a window aligned to `:00/:10/:20`.
+The app batches up to 100 items per request, waits at least 1.2 s, and honours
+`ratelimit-reset` on `429`. Do not refresh in a loop.
 
-```
-ratelimit-limit: 1
-ratelimit-remaining: 0
-ratelimit-reset: 1793616000   (finestra alineada als :00, :10, :20...)
-```
-
-És a dir: en aquest moment el marge real és **molt** més estricte que els 180 req/min que
-documenta el projecte. L'app:
-
-- batching de fins a 100 items per petició,
-- 1,2 s mínim entre peticions,
-- espera fins al `ratelimit-reset` quan rep un 429 (fins a 4 minuts),
-- mostra sempre les dades en caché mentre espera.
-
-Per això l'arquitectura no depèn de l'API per a la interactivitat: el sniffer i NATS són la via ràpida.
-
-## Estructura
+## Structure
 
 ```
-Albion Data Project\
-├── Aplicacio\                     # aquest repositori (.NET)
-│   ├── src\
-│   │   ├── AlbionMarket.Core\     # sense dependència de WPF
-│   │   │   ├── Models\            # MarketPrice, MarketOrder, Flip
-│   │   │   ├── Data/MarketDatabase.cs  # SQLite: prices, orders, items, settings
-│   │   │   ├── Api/AlbionApiClient.cs  # REST + throttle + reintents
-│   │   │   ├── Realtime/IngestServer.cs# HTTP mínim per al client
-│   │   │   ├── Realtime/NatsClient.cs  # protocol NATS a mà
-│   │   │   ├── Engine/FlipAnalyzer.cs  # càlcul d'oportunitats
-│   │   │   ├── AppPaths.cs        # rutes centrals del producte
-│   │   │   └── MarketService.cs   # orquestrador
-│   │   ├── AlbionMarket.App\      # WPF
-│   │   └── AlbionMarket.Cli\      # harness sense interfície
-│   └── run.ps1
-├── Client\                        # fork d'albiondata-client (+ uploader file://)
-└── Dades\                         # market.db (SQLite)
+Aplicacio\
+├── src\
+│   ├── AlbionMarket.Core\     # no WPF dependency
+│   │   ├── Models\            # MarketPrice, MarketOrder, Flip
+│   │   ├── Data\              # MarketDatabase (SQLite)
+│   │   ├── Api\               # AlbionApiClient (REST + throttling)
+│   │   ├── Realtime\          # IngestServer, NatsClient
+│   │   ├── Engine\            # FlipAnalyzer
+│   │   ├── AppPaths.cs        # central paths
+│   │   └── MarketService.cs   # orchestrator
+│   ├── AlbionMarket.App\      # WPF
+│   └── AlbionMarket.Cli\      # headless harness
+└── run.ps1
 ```
 
-Base de dades: `Dades\market.db` (SQLite, consultable amb DB Browser for SQLite
-o Python). Com que la carpeta viu dins de OneDrive, l'app desactiva el mode WAL i
-fa servir journal `DELETE`: així no es sincronitzen fitxers `-wal`/`-shm` a mitges.
+Database: `..\Dades\market.db`. Because the folder lives in OneDrive, the app uses
+`journal_mode=DELETE` instead of WAL.
 
 ## CLI
 
@@ -212,24 +135,17 @@ dotnet run --project src\AlbionMarket.Cli -- flips
 dotnet run --project src\AlbionMarket.Cli -- flips T4_BAG T5_BAG
 dotnet run --project src\AlbionMarket.Cli -- fetch
 dotnet run --project src\AlbionMarket.Cli -- serve
+dotnet run --project src\AlbionMarket.Cli -- nats
 dotnet run --project src\AlbionMarket.Cli -- items bag
 dotnet run --project src\AlbionMarket.Cli -- catalog
 dotnet run --project src\AlbionMarket.Cli -- selftest
 ```
 
-`serve` escolta a `http://localhost:5099` i mostra per consola cada ordre que arribi:
-serveix per provar el sniffer sense obrir la interfície gràfica.
+`serve` listens on `http://localhost:5099` and prints every incoming order: the fastest way
+to test the sniffer without the UI.
 
-## Properes passes suggerides
+## Disclaimer
 
-1. **Historial i liquiditat**: `stats/history` ja està al client; falta graficar volum i mitjana de 7/30 dies per filtrar oportunitats sense mercat.
-2. **Pes i transport**: afegir `weight` dels items (ao-bin-dumps) per calcular si el viatge val la pena.
-3. **Alertes**: notificació d'escriptori quan un item de la llista superi un ROI.
-4. **Pestanya d'or**: `stats/gold` i el seu historial.
-5. **Import dels bolcs diaris** (`albion-online-data.com/database/`) per omplir l'històric sense gastar API.
-6. **Provat**: fork compilat (Go 1.27 + cgo) i ingesta local funcionant; falta provar el mode `file://` end-to-end.
-
-## Avís
-
-Eina no oficial, sense cap relació amb Sandbox Interactive. Només llegeix i analitza dades,
-que és el que el propi Sandbox ha declarat acceptable. No modifica ni intervé en el joc.
+Unofficial tool, not affiliated with Sandbox Interactive. It only reads and analyses data,
+which is what Sandbox has declared acceptable. It never modifies or interferes with the
+game.

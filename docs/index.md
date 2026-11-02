@@ -1,53 +1,54 @@
 # Albion Data Project
 
-Eina **personal** per consultar i explotar el mercat d'Albion Online des del PC. Combina
-tres fonts de dades en una sola base de dades SQLite i calcula oportunitats de
-compravenda entre ciutats.
+A **personal** tool to query and exploit the Albion Online market from a Windows PC.
+It merges three data sources into a single SQLite database and computes cross-city
+buy/sell opportunities.
 
-!!! info "Estat"
-    Funcional a data **2 de novembre de 2026**: API, motor d'oportunitats, interfície WPF,
-    ingestió local del sniffer i feed NATS en temps real. El fork del client ja està
-    compilat i el client antic del PC s'ha desinstal·lat.
+!!! info "Status"
+    Working as of **2 November 2026**: AODP API, opportunity engine, WPF UI, local
+    sniffer ingest and the real-time NATS feed. The fork of `albiondata-client` is
+    compiled and the old official client has been removed from this machine.
 
-## Què fa
+## What it does
 
-1. **API pública d'AODP** — instantànies de preus de totes les ciutats.
-2. **Sniffer propi** — fork d'`albiondata-client`: captura el que obres al mercat del joc
-   i ho envia a l'app per HTTP.
-3. **Feed NATS públic** — el canal en temps real que fan servir les eines de pagament.
+1. **AODP public API** — price snapshots for every city.
+2. **Own sniffer** — a fork of `albiondata-client`: captures whatever you open in the
+   in-game market and POSTs it to the app.
+3. **Public NATS feed** — the real-time channel commercial tools use.
 
-Amb això l'app mostra, per a cada item:
+For every item the app shows:
 
-- on comprar-lo més barat i on vendre'l més car,
-- el marge **NET** (venda instantània a una ordre de compra) i el **NET LISTAT**
-  (posant la teva pròpia ordre de venda),
-- el ROI, les taxes aplicades i l'**edat** de cada preu.
+- where to buy cheapest and where to sell dearest,
+- **NET** profit (instant sale into an existing buy order) and **NET LISTED**
+  (placing your own sell order),
+- ROI, applied taxes and the **age** of each price.
 
-## Per on començar
+## Where to start
 
-| Vull… | Ves a |
+| I want to… | Go to |
 |---|---|
-| Entendre com encaixa tot | [Arquitectura](arquitectura.md) |
-| Instal·lar-ho en un PC nou | [Instal·lació](instalacio.md) |
-| Saber d'on surten les dades | [Fonts de dades](fonts-de-dades.md) |
-| Tocar la base de dades | [Base de dades](base-de-dades.md) |
-| Compilar el sniffer | [Client (sniffer)](client-sniffer.md) |
-| Fer-lo servir cada dia | [Ús diari](us-diar.md) |
-| Saber què falta | [Properes passes](properes-passes.md) |
-| Veure què hem fet i per què | [Registre del projecte](registre.md) |
+| Understand how it fits together | [Architecture](architecture.md) |
+| Install it on a new PC | [Installation](installation.md) |
+| Know where the data comes from | [Data sources](data-sources.md) |
+| Inspect the database | [Database](database.md) |
+| Build the sniffer | [Client](client.md) |
+| Use it day to day | [Usage](usage.md) |
+| Know what is left | [Roadmap](roadmap.md) |
+| See what we did and why | [Changelog](changelog.md) |
+| Check what is pending right now | [Status](status.md) |
 
-## Estructura del projecte
+## Project layout
 
 ```
 Albion Data Project\
-├── Aplicacio\    aplicació .NET (nucli + WPF + CLI)   → repositori principal
-├── Client\       fork d'albiondata-client              → submòdul (repo propi)
-├── Dades\        market.db (SQLite, no es puja a GitHub)
-└── docs\         aquesta documentació (MkDocs)
+├── Aplicacio\    .NET application (core + WPF + CLI)   → main repository
+├── Client\       fork of albiondata-client              → submodule (own repo)
+├── Dades\        market.db (SQLite, not pushed to GitHub)
+└── docs\         this documentation (MkDocs)
 ```
 
-## Avís
+## Disclaimer
 
-Eina no oficial, sense cap relació amb Sandbox Interactive. Només llegeix i analitza
-dades, que és el que el propi Sandbox ha declarat acceptable. No modifica ni intervé
-en el joc.
+Unofficial tool, not affiliated with Sandbox Interactive. It only reads and analyses
+data, which is what Sandbox has declared acceptable. It never modifies or interferes
+with the game.
