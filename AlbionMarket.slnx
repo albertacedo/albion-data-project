@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AlbionMarket.App/AlbionMarket.App.csproj" />
+    <Project Path="src/AlbionMarket.Cli/AlbionMarket.Cli.csproj" />
+    <Project Path="src/AlbionMarket.Core/AlbionMarket.Core.csproj" />
+  </Folder>
+</Solution>

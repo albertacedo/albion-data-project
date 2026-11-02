@@ -1,0 +1,14 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# El fork del client és un repositori propi
+tools/albiondata-client/
+
+# Fitxers locals
+*.db
+*.db-wal
+*.db-shm
