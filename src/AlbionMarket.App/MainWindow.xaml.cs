@@ -111,8 +111,12 @@ public partial class MainWindow : Window
     {
         if (_svc is null) return;
 
+        var apiState = _svc.LastRefreshUtc is { } last
+            ? $"API: {last.ToLocalTime():HH:mm:ss}"
+            : $"API: dades en caché ({_vm.Flips.Count} oportunitats)";
+
         StatusText.Text =
-            $"API: {(_svc.LastRefreshUtc is null ? "sense dades" : _svc.LastRefreshUtc.Value.ToLocalTime().ToString("HH:mm:ss"))}" +
+            $"{apiState}" +
             $"  ·  Ingesta: {(_svc.Ingest.IsRunning ? "activa" : "aturada")}" +
             $"  ·  NATS: {(_svc.Nats is { IsConnected: true } ? "connectat" : "desconnectat")}";
 
