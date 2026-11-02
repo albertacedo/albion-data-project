@@ -50,6 +50,21 @@ switch (cmd)
         break;
     }
 
+    case "nats":
+    {
+        var printed = 0;
+        svc.StartNats();
+        svc.Nats!.Message += (subject, json) =>
+        {
+            if (Interlocked.Increment(ref printed) <= 2)
+                Console.WriteLine($"[{subject}] {json[..Math.Min(700, json.Length)]}");
+        };
+        Console.WriteLine("Subscrit a marketorders.deduped. Escoltant 20 segons...");
+        await Task.Delay(TimeSpan.FromSeconds(20));
+        Console.WriteLine($"Missatges NATS: {svc.Nats?.MessagesReceived ?? 0} · ordres a la BD: {await svc.Db.CountOrdersAsync()}");
+        break;
+    }
+
     case "serve":
     {
         if (rest.Length > 0 && int.TryParse(rest[0], out var _)) { /* port fixed at 5099 by design */ }

@@ -290,10 +290,11 @@ public sealed class MarketDatabase
     /// the incoming orders. This is what turns raw orders into the same shape the
     /// REST API returns, so the flip engine does not care where data came from.
     /// </summary>
-    public async Task RebuildPricesFromOrdersAsync(IEnumerable<MarketOrder> orders, CancellationToken ct = default)
+    public async Task RebuildPricesFromOrdersAsync(
+        IEnumerable<MarketOrder> orders, string source = "sniffer", CancellationToken ct = default)
     {
         var groups = orders
-            .Where(o => !string.IsNullOrWhiteSpace(o.ItemId))
+            .Where(o => !string.IsNullOrWhiteSpace(o.ItemId) && Locations.IsKnownCity(o.LocationId))
             .GroupBy(o => (o.ItemId, City: Locations.Name(o.LocationId), Quality: o.Quality <= 0 ? 1 : o.Quality));
 
         var rows = new List<MarketPrice>();
@@ -322,7 +323,7 @@ public sealed class MarketDatabase
         }
 
         if (rows.Count > 0)
-            await MergePricesAsync(rows, "sniffer", ct).ConfigureAwait(false);
+            await MergePricesAsync(rows, source, ct).ConfigureAwait(false);
     }
 
     public async Task<List<StoredOrder>> GetRecentOrdersAsync(int limit = 200, CancellationToken ct = default)

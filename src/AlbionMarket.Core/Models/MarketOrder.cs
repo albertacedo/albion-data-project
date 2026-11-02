@@ -16,7 +16,9 @@ public sealed class MarketOrder
     [JsonPropertyName("Id")] public long Id { get; set; }
     [JsonPropertyName("ItemTypeId")] public string ItemId { get; set; } = "";
     [JsonPropertyName("ItemGroupTypeId")] public string GroupTypeId { get; set; } = "";
-    [JsonPropertyName("LocationId")] public string LocationId { get; set; } = "";
+    [JsonPropertyName("LocationId")]
+    [JsonConverter(typeof(FlexibleStringConverter))]
+    public string LocationId { get; set; } = "";
     [JsonPropertyName("QualityLevel")] public int Quality { get; set; } = 1;
     [JsonPropertyName("EnchantmentLevel")] public int Enchantment { get; set; }
     [JsonPropertyName("UnitPriceSilver")] public int Price { get; set; }

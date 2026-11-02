@@ -231,7 +231,7 @@ public sealed class MarketService : IAsyncDisposable
     private async Task HandleOrdersAsync(List<MarketOrder> orders, string source)
     {
         var saved = await Db.SaveOrdersAsync(orders, source).ConfigureAwait(false);
-        await Db.RebuildPricesFromOrdersAsync(orders).ConfigureAwait(false);
+        await Db.RebuildPricesFromOrdersAsync(orders, source).ConfigureAwait(false);
         Ingest.AddOrders(saved);
 
         foreach (var order in orders.Take(50))
@@ -331,7 +331,20 @@ public sealed class MarketService : IAsyncDisposable
     {
         try
         {
-            // The deduped feed uses the same shape as the ingest endpoint.
+            // marketorders.deduped publishes ONE order per message, while the
+            // local HTTP ingest sends {"Orders":[...]}. Support both.
+            var single = JsonSerializer.Deserialize<MarketOrder>(json);
+            if (single is { } o && o.Id != 0 && !string.IsNullOrWhiteSpace(o.ItemId))
+            {
+                await HandleOrdersAsync(new List<MarketOrder> { o }, "nats").ConfigureAwait(false);
+                return;
+            }
+        }
+        catch (JsonException) { /* potser és un lot */ }
+        catch (Exception ex) { Log?.Invoke($"Missatge NATS no processat: {ex.Message}"); return; }
+
+        try
+        {
             var upload = JsonSerializer.Deserialize<MarketUpload>(json);
             if (upload?.Orders is { Count: > 0 })
                 await HandleOrdersAsync(upload.Orders, "nats").ConfigureAwait(false);

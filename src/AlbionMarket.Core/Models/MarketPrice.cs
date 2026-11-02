@@ -95,6 +95,9 @@ public static class Locations
     public static string Name(string locationIdOrName) =>
         ById.TryGetValue(locationIdOrName, out var name) ? name : locationIdOrName;
 
+    /// <summary>True for the eight tradeable locations (hideouts and roads are excluded).</summary>
+    public static bool IsKnownCity(string locationId) => ById.ContainsKey(locationId);
+
     public static string Id(string cityName) =>
         ById.FirstOrDefault(kv => string.Equals(kv.Value, cityName, StringComparison.OrdinalIgnoreCase)).Key
         ?? cityName;
