@@ -46,6 +46,9 @@ public sealed class MarketService : IAsyncDisposable
     public List<string> Watchlist { get; } = new();
     public string ClientPath { get; set; } = AppPaths.ForkedClientExe;
     public bool AlsoUploadToPublicProject { get; set; }
+
+    /// <summary>Start the local client and connect NATS as soon as the app opens.</summary>
+    public bool AutoStart { get; set; } = true;
     public DateTime? LastRefreshUtc { get; private set; }
 
     public event Action<List<Flip>>? FlipsChanged;
@@ -101,6 +104,7 @@ public sealed class MarketService : IAsyncDisposable
 
         ClientPath = AppPaths.ResolveClientExe(Db.GetSetting("clientPath"));
         AlsoUploadToPublicProject = Db.GetSetting("alsoPublic") == "1";
+        AutoStart = Db.GetSetting("autoStart") != "0";
 
         var list = Db.GetSetting("watchlist");
         Watchlist.Clear();
@@ -120,6 +124,7 @@ public sealed class MarketService : IAsyncDisposable
         Db.SetSetting("includeListed", Options.IncludeListed ? "1" : "0");
         Db.SetSetting("clientPath", ClientPath);
         Db.SetSetting("alsoPublic", AlsoUploadToPublicProject ? "1" : "0");
+        Db.SetSetting("autoStart", AutoStart ? "1" : "0");
         Db.SetSetting("watchlist", string.Join(",", Watchlist));
         StateChanged?.Invoke();
     }
@@ -222,6 +227,13 @@ public sealed class MarketService : IAsyncDisposable
         catch (Exception ex) { Log?.Invoke($"JSON d'ordres no vàlid: {ex.Message}"); return; }
         if (upload?.Orders is null || upload.Orders.Count == 0) return;
 
+        // The game sends auction prices in its internal unit, 1/10,000 silver
+        // (the client divides by 10000 for mail notifications for the same
+        // reason). The public AODP ingest normalises them before publishing;
+        // our endpoint gets the raw client JSON, so normalise here. Without
+        // this every sniffer price lands 10,000x too high.
+        foreach (var order in upload.Orders) order.Price /= 10_000;
+
         await HandleOrdersAsync(upload.Orders, "sniffer").ConfigureAwait(false);
     }
 
@@ -273,8 +285,11 @@ public sealed class MarketService : IAsyncDisposable
         var psi = new ProcessStartInfo
         {
             FileName = ClientPath,
-            Arguments = $"-i \"{ingest}\" -minimize",
+            // -nogui: no dashboard window, no tray icon, nothing on screen.
+            // The app is the only UI; the process just sniffs and POSTs here.
+            Arguments = $"-i \"{ingest}\" -nogui",
             UseShellExecute = false,
+            CreateNoWindow = true,
             // Keeps albiondata-client.log next to the binary instead of in
             // whatever folder the app happened to be launched from.
             WorkingDirectory = Path.GetDirectoryName(ClientPath) ?? AppPaths.ClientDir
@@ -283,7 +298,17 @@ public sealed class MarketService : IAsyncDisposable
         try
         {
             _clientProcess = Process.Start(psi);
-            Log?.Invoke($"Client local iniciat (ingesta: {ingest}).");
+            Log?.Invoke($"Client local iniciat en segon pla (ingesta: {ingest}).");
+
+            var started = _clientProcess;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                if (started is { HasExited: true })
+                    Log?.Invoke($"El client ha sortit de seguida (codi {started.ExitCode}). " +
+                                "Comprova que la ruta apunti al fork amb suport -nogui.");
+            });
+
             StateChanged?.Invoke();
         }
         catch (Exception ex)

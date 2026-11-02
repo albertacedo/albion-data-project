@@ -43,16 +43,26 @@ That is: **one request per 10-minute window** at that moment, far stricter than 
   `LocationId`).
 - Health: `GET http://localhost:5099/health`.
 
+!!! warning "Prices arrive in 1/10,000 silver"
+    The game sends `UnitPriceSilver` in its internal unit: **10,000 units = 1 silver**.
+    The public AODP ingest normalises it; because the app receives the raw client JSON,
+    it divides every incoming sniffer price by 10,000 before storing. NATS and the REST
+    API already arrive in silver and are **not** divided again. Any future importer of
+    `file://` captures must divide too.
+
 The official client (or the fork) must be started with:
 
 ```
-albiondata-client.exe -i "http://localhost:5099" -minimize
+albiondata-client.exe -i "http://localhost:5099" -nogui
 ```
+
+`-nogui` is the fork's headless mode (no window, no tray). The app passes it when it
+starts the client by itself.
 
 Optionally, to also contribute to the public project:
 
 ```
-albiondata-client.exe -i "http://localhost:5099,https+pow://pow.europe.albion-online-data.com" -minimize
+albiondata-client.exe -i "http://localhost:5099,https+pow://pow.europe.albion-online-data.com" -nogui
 ```
 
 ## 3. Public NATS feed

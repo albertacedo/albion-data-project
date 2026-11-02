@@ -228,21 +228,25 @@
                                   Content="També enviar les meves dades al projecte públic (AODP)"
                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,10"/>
 
-                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Llista de seguiment" VerticalAlignment="Top" Margin="0,4,0,10"/>
-                        <TextBox Grid.Row="6" Grid.Column="1" x:Name="WatchlistBox" Height="90" AcceptsReturn="True"
+                        <CheckBox Grid.Row="6" Grid.Column="1" x:Name="AutoStartCheck"
+                                  Content="En obrir l'app: client local en segon pla i NATS connectat"
+                                  Foreground="{StaticResource TextBrush}" Margin="0,0,0,10"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Llista de seguiment" VerticalAlignment="Top" Margin="0,4,0,10"/>
+                        <TextBox Grid.Row="7" Grid.Column="1" x:Name="WatchlistBox" Height="90" AcceptsReturn="True"
                                  TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10"/>
 
-                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Port d'ingesta" VerticalAlignment="Center" Margin="0,0,0,10"/>
-                        <TextBlock Grid.Row="7" Grid.Column="1" x:Name="PortText" Text="5099" Margin="0,0,0,10" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Port d'ingesta" VerticalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Grid.Row="8" Grid.Column="1" x:Name="PortText" Text="5099" Margin="0,0,0,10" Foreground="{StaticResource MutedBrush}"/>
 
-                        <StackPanel Grid.Row="8" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,10">
+                        <StackPanel Grid.Row="9" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,10">
                             <Button Content="Desar" Click="Save_Click" Background="#24406B"/>
                             <Button Content="Sincronitzar catàleg d'items" Click="SyncItems_Click" Margin="8,0,0,0"/>
                         </StackPanel>
 
-                        <TextBlock Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2" TextWrapping="Wrap"
+                        <TextBlock Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="2" TextWrapping="Wrap"
                                    Foreground="{StaticResource MutedBrush}" FontSize="11.5" Margin="0,8,0,0"
-                                   Text="El client local envia les dades a aquesta app amb: albiondata-client.exe -i http://localhost:5099 -minimize. Si actives l'enviament públic, també rebrà el projecte AODP (mateixes dades, cap cost)."/>
+                                   Text="El client local s'engega sense finestra (albiondata-client.exe -i http://localhost:5099 -nogui) i envia les dades a aquesta app. Si actives l'enviament públic, també rebrà el projecte AODP (mateixes dades, cap cost)."/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>

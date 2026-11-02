@@ -43,12 +43,13 @@ need a buyer to show up.
 
 ## Recommended routine
 
-1. **Open the app** and check that local ingest is active.
-2. **Start the client** (*Local sniffer* tab) if it is not running.
-3. **Play**: open the market for the items you care about. The sniffer POSTs the orders
-   and the grid refreshes.
-4. **Optional**: connect **NATS** to receive everyone's orders in real time.
-5. When you want a full snapshot, **refresh the API** (carefully: see
+1. **Open the app**. By default it starts the local client in the background (no window)
+   and connects to NATS on its own (*Configuració* → auto-start checkbox).
+2. **Play**: open the market for the items you care about. The sniffer POSTs the orders
+   and the grid in *Local sniffer* refreshes.
+3. If you unticked auto-start, press **Start client** and/or **Connect NATS** in the
+   *Local sniffer* tab.
+4. When you want a full snapshot, **refresh the API** (carefully: see
    [Data sources](data-sources.md)).
 
 ## Configure taxes correctly

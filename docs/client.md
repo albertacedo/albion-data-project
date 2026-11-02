@@ -7,8 +7,9 @@ official client, and keeps a **fork** in `Client/` (a repository submodule).
 ## Why a fork
 
 The stock client is enough to feed the app (`-i http://localhost:5099`). The fork adds
-**one thing**: a `file://` uploader that writes every payload to a JSON Lines file with
-no network at all. Useful to capture on a laptop and process later.
+**two things**: a `file://` uploader that writes every payload to a JSON Lines file with
+no network at all (useful to capture on a laptop and process later), and a `-nogui`
+mode that runs the client with no window and no tray icon.
 
 Changes against upstream (`ao-data/albiondata-client`):
 
@@ -16,6 +17,8 @@ Changes against upstream (`ao-data/albiondata-client`):
 |---|---|
 | `client/uploader_file.go` | new uploader that appends `{"ts","topic","data"}` lines to a file |
 | `client/dispatcher.go` | registers the `file://` scheme |
+| `client/config.go` | new `-nogui` flag |
+| `albiondata-client.go` | `-nogui` skips Wails entirely: no dashboard, no tray, capture on the main goroutine |
 
 ```json
 {"ts":"2026-11-02T10:00:00Z","topic":"marketorders.ingest","data":{"Orders":[...]}}
@@ -24,16 +27,30 @@ Changes against upstream (`ao-data/albiondata-client`):
 ## Recommended mode: send to the app
 
 ```powershell
-albiondata-client.exe -i "http://localhost:5099" -minimize
+albiondata-client.exe -i "http://localhost:5099" -nogui
 ```
 
-The app does this from the **Start client** button in the *Local sniffer* tab. Stop any
-previous client first: two sniffers at once duplicate the data.
+`-nogui` is what the app uses: the process has **no window and no tray icon**, it only
+sniffs and POSTs to the ingest port, and it is a child of the app (closing the app stops
+it). With `-nogui` the console is hidden too, so nothing flickers on screen.
+
+The app does this on its own when it opens (see *Auto-start* below), and the
+**Start client** button in the *Local sniffer* tab restarts it if needed. Stop any other
+client first: two sniffers at once duplicate the data.
+
+Prefer `-minimize` instead if you want the client's own dashboard (status, counters,
+log) reachable from the tray icon.
+
+### Auto-start
+
+The *Configuració* tab has **En obrir l'app: client local en segon pla i NATS connectat**,
+on by default (`autoStart` setting). When the app opens it starts the client with
+`-nogui` and subscribes to NATS. Untick it if you prefer to start each source by hand.
 
 To also contribute to the public project:
 
 ```
--i "http://localhost:5099,https+pow://pow.europe.albion-online-data.com"
+-i "http://localhost:5099,https+pow://pow.europe.albion-online-data.com" -nogui
 ```
 
 ## Capture-to-file mode
@@ -64,8 +81,8 @@ $env:CGO_LDFLAGS = "-L$PWD\thirdparty\WpdPack\Lib\x64"
 go build -o albiondata-client.exe albiondata-client.go
 ```
 
-Output: `Client\albiondata-client.exe` (~24.5 MB). That is the path the app expects by
-default (`AppPaths.ForkedClientExe`).
+Output: `Client\albiondata-client.exe` (~18 MB with `-s -w`). That is the path the app
+expects by default (`AppPaths.ForkedClientExe`).
 
 !!! warning "Why cgo is required"
     `gopacket/pcap` links against `wpcap.dll` on Windows. Without gcc and the import

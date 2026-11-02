@@ -3,6 +3,64 @@
 Chronological log of decisions and verifications. Enough to pick the thread back up from
 anywhere without reading the code.
 
+## 2026-11-02 — Session 3: end-to-end test, headless client, price unit fix
+
+### Full test
+
+| Item | Result |
+|---|---|
+| Build | 0 warnings, 0 errors |
+| App start | 8,191 prices and 19,314 orders loaded from `market.db` |
+| `GET /health` | 200 |
+| Synthetic `POST /marketorders.ingest` | 200, row in `orders` (`source=sniffer`) and aggregate in `prices` |
+| NATS | 547 messages in ~40 s, all written |
+| Real sniffer capture | 217 orders (Bridgewatch) while browsing the in-game market |
+| UI | Opportunities, Prices, Local sniffer and Settings tabs load and refresh |
+
+Two things broke during the test and were fixed on the spot:
+
+- The app could not bind port 5099 because the CLI (`nats`) was already listening.
+  **Rule**: never run the CLI and the app at the same time.
+- `ORDERS IN DB` always showed 0 (`DbOrdersText` was never assigned). It is now
+  refreshed every 5 s.
+
+### Headless client and auto-start
+
+- Fork: new `-nogui` flag (`client/config.go`, `albiondata-client.go`). It skips Wails
+  entirely — no dashboard, no tray, no console — and runs capture on the main goroutine.
+  Commit `6453e74`, pushed to `albertacedo/albiondata-client` (`master`). Rebuilt binary:
+  18 MB (with `-s -w`).
+- App: `StartLocalClient` now runs `albiondata-client.exe -i … -nogui`, as a child
+  process (closing the app stops it, verified).
+- App: new `autoStart` setting (**on** by default). On launch it starts the client and
+  subscribes to NATS; checkbox in *Configuració*.
+- App: if the binary exits within 5 s the log warns that the path may not point at the
+  fork.
+
+### Sniffer prices were 10,000x too high
+
+First real capture showed absurd values (`T6_BAG` at 420,000,000, `T6_RUNE` at 1,430,000).
+
+- **Cause**: the game sends `UnitPriceSilver` in its internal unit, **1/10,000 silver**.
+  The public AODP ingest normalises it (that is why NATS and the API arrive in silver),
+  but the local endpoint received the raw client JSON.
+- **Fix**: `MarketService.OnIngestAsync` divides sniffer prices by 10,000. NATS and the
+  API are untouched.
+- **Verification**: raw 1,234,567,890 → stored as 123,456. Cross-check with other cities:
+  `T4_WOOD` 770,000 → 77 (Fort Sterling 90, Lymhurst 86); `T4_RUNE` 120,000 → 10
+  (Thetford 6); `T4_SOUL` 1,040,000 → 104 (Thetford 103); `T6_BAG` 420,000,000 → 42,000
+  (Thetford 40,952).
+- **Repair**: 217 sniffer orders normalised in place and 53 Bridgewatch aggregates
+  recomputed from the orders table.
+- Documented in [Data sources](data-sources.md); any `file://` importer must divide too.
+
+### Docs
+
+- `client.md`: `-nogui`, auto-start, new build size.
+- `data-sources.md`: the 1/10,000 unit and the `-nogui` invocation.
+- `usage.md`: the routine now starts with "open the app, it does the rest".
+- `.gitignore`: `albiondata-client.log*`.
+
 ## 2026-11-02 — Session 2: documentation in English, session protocol
 
 - All documentation translated to English and renamed to English slugs

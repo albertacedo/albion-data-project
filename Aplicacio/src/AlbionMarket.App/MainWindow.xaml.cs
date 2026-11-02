@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private MarketService? _svc;
     private bool _busy;
+    private int _countTicks;
 
     public MainWindow()
     {
@@ -49,6 +50,17 @@ public partial class MainWindow : Window
         }
 
         RefreshState();
+
+        // Default behaviour: the app is the only UI, so the sniffer and the
+        // public feed start on their own. The checkbox in Configuració
+        // (autoStart) turns this off.
+        if (_svc.AutoStart)
+        {
+            AppendLog("Arrencada automàtica: client local en segon pla i NATS.");
+            _svc.StartLocalClient();
+            _svc.StartNats();
+            RefreshState();
+        }
     }
 
     private void LoadSettingsIntoUi()
@@ -64,6 +76,7 @@ public partial class MainWindow : Window
         ListedCheck.IsChecked = _svc.Options.IncludeListed;
         ClientPathBox.Text = _svc.ClientPath;
         AlsoPublicCheck.IsChecked = _svc.AlsoUploadToPublicProject;
+        AutoStartCheck.IsChecked = _svc.AutoStart;
         WatchlistBox.Text = string.Join(Environment.NewLine, _svc.Watchlist);
         PortText.Text = _svc.IngestPort.ToString();
     }
@@ -105,6 +118,21 @@ public partial class MainWindow : Window
         IngestRequestsText.Text = _svc.Ingest.RequestCount.ToString("N0");
         IngestOrdersText.Text = _svc.Ingest.OrderCount.ToString("N0");
         NatsCountText.Text = (_svc.Nats?.MessagesReceived ?? 0).ToString("N0");
+
+        // The total keeps changing as NATS writes rows, but counting 20k rows
+        // every second is wasted work: refresh it every five ticks.
+        if (++_countTicks % 5 == 0) _ = RefreshDbCountAsync();
+    }
+
+    private async Task RefreshDbCountAsync()
+    {
+        if (_svc is null) return;
+        try
+        {
+            var n = await _svc.Db.CountOrdersAsync();
+            DbOrdersText.Text = n.ToString("N0");
+        }
+        catch { /* comptador informatiu: si falla, no destorbem */ }
     }
 
     private void RefreshState()
@@ -185,6 +213,7 @@ public partial class MainWindow : Window
         _svc.Options.MaxInvestment = (int)ReadDouble(MaxInvestBox.Text, 0);
         _svc.ClientPath = ClientPathBox.Text.Trim();
         _svc.AlsoUploadToPublicProject = AlsoPublicCheck.IsChecked == true;
+        _svc.AutoStart = AutoStartCheck.IsChecked == true;
 
         _svc.Watchlist.Clear();
         _svc.Watchlist.AddRange(WatchlistBox.Text

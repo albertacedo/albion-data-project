@@ -1,6 +1,6 @@
 # Status
 
-_Last updated: **2026-11-02** (session 2)_
+_Last updated: **2026-11-02** (session 3)_
 
 This page is the single source of truth for **what is pending**. It is read at the start
 of every work session and updated at the end — see `AGENTS.md`.
@@ -12,7 +12,11 @@ of every work session and updated at the end — see `AGENTS.md`.
 - [ ] **History and liquidity** — store `stats/history`, chart volume and 7/30-day
       average, flag low-volume items as "no market".
 - [ ] **`file://` end-to-end** — real capture, importer into `market.db`, compare with
-      HTTP ingest.
+      HTTP ingest. Remember: those payloads carry prices in 1/10,000 silver.
+- [ ] **Partial sniffer batches** — a capture that only sees part of the market list
+      (page not scrolled, filtered by quality) can raise a city's minimum sell price
+      until the API or NATS refreshes it. Decide whether to trust sniffer aggregates
+      only for items seen in a "complete" batch, or to keep them apart.
 
 ### Later
 
@@ -28,12 +32,11 @@ of every work session and updated at the end — see `AGENTS.md`.
 
 ### Housekeeping
 
-- [ ] **Npcap check** — confirm Npcap is installed (capture depends on it) and document
-      the exact version on this machine.
 - [ ] **`Aplicacio/README.md`** — it duplicates part of this site; consider trimming it to
       a pointer.
 - [ ] **Fork upstream sync** — `Client/` tracks `ao-data/albiondata-client`; review
-      upstream now and then and rebase the `file://` commit.
+      upstream now and then and rebase the `file://` and `-nogui` commits. Last check
+      (2026-11-02): 0 commits behind.
 
 ## Done
 
@@ -49,6 +52,14 @@ of every work session and updated at the end — see `AGENTS.md`.
 - [x] Repositories created and pushed (project + fork submodule).
 - [x] Documentation translated to English.
 - [x] Session protocol (`AGENTS.md` + `scripts/session-end.ps1`).
+- [x] Full end-to-end test: build, `/health`, synthetic ingest, NATS (547 messages in
+      40 s) and real sniffer capture (217 orders from Bridgewatch).
+- [x] Headless client `-nogui` in the fork; the app starts it (plus NATS) on launch,
+      by default, with a checkbox in *Configuració*.
+- [x] Sniffer prices normalised (`/10,000`); existing rows repaired.
+- [x] *Orders in DB* counter, which always showed 0.
+- [x] Npcap 1.10.6 confirmed working on this machine (wpcap.dll, device
+      `\Device\NPF_{DE900BB9-5F2F-4C6B-8572-76EA35DE1A7C}`).
 
 ## How to update this page
 

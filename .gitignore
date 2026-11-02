@@ -17,3 +17,6 @@ site/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Client (log local)
+albiondata-client.log*
