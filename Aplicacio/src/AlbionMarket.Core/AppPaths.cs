@@ -2,17 +2,18 @@ namespace AlbionMarket.Core;
 
 /// <summary>
 /// Central place for every path the app uses. Everything lives under
-/// <c>Documents\Albert\Albion Data Client</c> in three sibling folders so the
-/// executable, the packet-capture client and the database stay together but
-/// separate.
+/// <c>Documents\Albert\OpenCode\Albion Data Project</c> in three sibling folders
+/// so the application, the packet-capture client and the database stay together
+/// but separate.
 /// </summary>
 public static class AppPaths
 {
-    public const string ProductFolder = "Albion Data Client";
+    public const string ProductFolder = "Albion Data Project";
 
     public static string Root => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         "Albert",
+        "OpenCode",
         ProductFolder);
 
     /// <summary>SQLite database (one file, inspectable with any SQLite tool).</summary>
@@ -21,27 +22,21 @@ public static class AppPaths
     /// <summary>Fork of albiondata-client, sources and compiled binary.</summary>
     public static string ClientDir => Path.Combine(Root, "Client");
 
+    /// <summary>MkDocs sources for the project documentation.</summary>
+    public static string DocsDir => Path.Combine(Root, "docs");
+
     public static string DatabaseFile => Path.Combine(DataDir, "market.db");
 
     public static string ForkedClientExe => Path.Combine(ClientDir, "albiondata-client.exe");
 
-    public static string InstalledClientExe =>
-        @"C:\Program Files\Albion Data Client\albiondata-client.exe";
-
     /// <summary>
-    /// Picks the binary to launch: the configured path if it exists, then the
-    /// fork inside our own folder, then the official installation.
+    /// Picks the binary to launch: the configured path if it exists, otherwise
+    /// the fork that ships with the project.
     /// </summary>
     public static string ResolveClientExe(string? configured = null)
     {
         if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
             return configured;
-
-        if (File.Exists(ForkedClientExe))
-            return ForkedClientExe;
-
-        if (File.Exists(InstalledClientExe))
-            return InstalledClientExe;
 
         return ForkedClientExe;
     }

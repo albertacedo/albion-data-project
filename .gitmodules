@@ -1,0 +1,4 @@
+[submodule "Client"]
+	path = Client
+	url = https://github.com/albertacedo/albiondata-client.git
+	branch = master
