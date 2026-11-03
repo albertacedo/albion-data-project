@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 using AlbionMarket.Core;
 using AlbionMarket.Core.Engine;
@@ -14,6 +15,7 @@ public partial class MainWindow : Window
     private MarketService? _svc;
     private bool _busy;
     private int _countTicks;
+    private List<Flip> _allFlips = new();
 
     public MainWindow()
     {
@@ -35,8 +37,10 @@ public partial class MainWindow : Window
         _vm.ItemNames = await _svc.Db.GetItemNamesAsync();
 
         LoadSettingsIntoUi();
+        LoadOpportunityFilters();
         AppendLog($"Base de dades: {_svc.Db.FilePath}");
         AppendLog($"Catàleg: {_vm.ItemNames.Count} items · preus en caché: {await _svc.Db.CountPricesAsync()}");
+        await RefreshApiItemsCountAsync();
 
         // First run or stale cache: pull the watchlist straight away.
         if (await _svc.Db.CountPricesAsync() < 50)
@@ -89,16 +93,83 @@ public partial class MainWindow : Window
 
     // ---------------------------------------------------------------- events
 
+    private void FlipsGrid_LoadingRow(object? sender, DataGridRowEventArgs e)
+    {
+        if (e.Row.DataContext is FlipRow row) row.LoadIcon();
+    }
+
+    private void PricesGrid_LoadingRow(object? sender, DataGridRowEventArgs e)
+    {
+        if (e.Row.DataContext is PriceRow row) row.LoadIcon();
+    }
+
     private void OnFlipsChanged(List<Flip> flips)
     {
         Dispatcher.BeginInvoke(() =>
         {
-            _vm.Flips.Clear();
-            foreach (var f in flips) _vm.Flips.Add(_vm.ToRow(f));
-
-            FlipsCountText.Text = $"{flips.Count} oportunitats";
+            _allFlips = flips;
+            ApplyOpportunityFilters(save: false);
             RefreshState();
         });
+    }
+
+    private void ApplyOpportunityFilters_Click(object sender, RoutedEventArgs e) =>
+        ApplyOpportunityFilters(save: true);
+
+    private void ApplyOpportunityFilters(bool save)
+    {
+        var buyCities = BuyCityFilterCombo.SelectedValues();
+        var sellCities = SellCityFilterCombo.SelectedValues();
+        var tiers = TierFilterCombo.SelectedValues();
+        var enchantments = EnchantmentFilterCombo.SelectedValues();
+        var qualities = QualityFilterCombo.SelectedValues();
+
+        var filtered = _allFlips.Where(f =>
+            (buyCities.Count == 0 || buyCities.Contains(f.BuyCity)) &&
+            (sellCities.Count == 0 || sellCities.Contains(f.SellCity)) &&
+            (tiers.Count == 0 || tiers.Contains(ItemTier(f.ItemId))) &&
+            (enchantments.Count == 0 || enchantments.Contains(ItemEnchantment(f.ItemId).ToString(CultureInfo.InvariantCulture))) &&
+            (qualities.Count == 0 || qualities.Contains(f.Quality.ToString(CultureInfo.InvariantCulture)))).ToList();
+
+        _vm.Flips.Clear();
+        foreach (var flip in filtered) _vm.Flips.Add(_vm.ToRow(flip));
+        FlipsCountText.Text = $"{filtered.Count} de {_allFlips.Count} oportunitats";
+
+        if (save && _svc is not null)
+        {
+            _svc.Db.SetSetting("filterBuyCity", string.Join(",", buyCities));
+            _svc.Db.SetSetting("filterSellCity", string.Join(",", sellCities));
+            _svc.Db.SetSetting("filterTier", string.Join(",", tiers));
+            _svc.Db.SetSetting("filterEnchantment", string.Join(",", enchantments));
+            _svc.Db.SetSetting("filterQuality", string.Join(",", qualities));
+            AppendLog("Filtres d'oportunitats desats.");
+        }
+    }
+
+    private void LoadOpportunityFilters()
+    {
+        if (_svc is null) return;
+
+        SetFilterSelection(BuyCityFilterCombo, _svc.Db.GetSetting("filterBuyCity"));
+        SetFilterSelection(SellCityFilterCombo, _svc.Db.GetSetting("filterSellCity"));
+        SetFilterSelection(TierFilterCombo, _svc.Db.GetSetting("filterTier"));
+        SetFilterSelection(EnchantmentFilterCombo, _svc.Db.GetSetting("filterEnchantment"));
+        SetFilterSelection(QualityFilterCombo, _svc.Db.GetSetting("filterQuality"));
+        ApplyOpportunityFilters(save: false);
+    }
+
+    private static void SetFilterSelection(MultiSelectComboBox filter, string? value) =>
+        filter.SetSelectedValues((value ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+    private static string ItemTier(string itemId) =>
+        itemId.Split('_', 2)[0].ToUpperInvariant();
+
+    private static int ItemEnchantment(string itemId)
+    {
+        var at = itemId.LastIndexOf('@');
+        return at >= 0 && int.TryParse(itemId[(at + 1)..], out var enchantment)
+            ? enchantment
+            : 0;
     }
 
     private void AppendLog(string message)
@@ -131,8 +202,20 @@ public partial class MainWindow : Window
         {
             var n = await _svc.Db.CountOrdersAsync();
             DbOrdersText.Text = n.ToString("N0");
+            await RefreshApiItemsCountAsync();
         }
         catch { /* comptador informatiu: si falla, no destorbem */ }
+    }
+
+    private async Task RefreshApiItemsCountAsync()
+    {
+        if (_svc is null) return;
+        try
+        {
+            var n = await _svc.Db.CountPriceItemsAsync();
+            ApiItemsText.Text = n.ToString("N0");
+        }
+        catch { /* comptador informatiu */ }
     }
 
     private void RefreshState()

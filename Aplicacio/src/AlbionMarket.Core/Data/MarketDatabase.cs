@@ -240,6 +240,14 @@ public sealed class MarketDatabase
         return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
     }
 
+    public async Task<long> CountPriceItemsAsync(CancellationToken ct = default)
+    {
+        using var cn = Open();
+        using var cmd = cn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(DISTINCT item_id) FROM prices;";
+        return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
+    }
+
     // ---------------------------------------------------------------- orders
 
     public async Task<int> SaveOrdersAsync(IEnumerable<MarketOrder> orders, string source, CancellationToken ct = default)
@@ -421,6 +429,18 @@ public sealed class MarketDatabase
         using var cmd = cn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM items;";
         return Convert.ToInt64(await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
+    }
+
+    public async Task<List<string>> GetItemIdsAsync(CancellationToken ct = default)
+    {
+        using var cn = Open();
+        using var cmd = cn.CreateCommand();
+        cmd.CommandText = "SELECT item_id FROM items ORDER BY item_id;";
+        var ids = new List<string>();
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            ids.Add(reader.GetString(0));
+        return ids;
     }
 
     // -------------------------------------------------------------- settings

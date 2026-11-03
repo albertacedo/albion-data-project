@@ -1,6 +1,7 @@
 ﻿<Window x:Class="AlbionMarket.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AlbionMarket.App"
         Title="Albion Market" Height="760" Width="1240"
         MinHeight="600" MinWidth="980"
         Background="{StaticResource BgBrush}"
@@ -38,10 +39,11 @@
                 <Grid Margin="8,10,8,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <Button Content="Actualitza ara" Click="Refresh_Click" Background="#24406B"/>
                         <TextBlock Text="ROI mínim" VerticalAlignment="Center" Margin="18,0,6,0" Foreground="{StaticResource MutedBrush}"/>
                         <TextBox x:Name="MinRoiBox" Width="55" Text="10"/>
@@ -54,9 +56,69 @@
                         <TextBlock x:Name="FlipsCountText" Text="" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
 
-                    <DataGrid Grid.Row="1" Style="{StaticResource GridStyle}" ItemsSource="{Binding Flips}">
+                    <Border Grid.Row="1" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush2}"
+                            BorderThickness="1" CornerRadius="4" Padding="10,7" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="170"/>
+                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="190"/>
+                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="115"/>
+                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="105"/>
+                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="95"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Compra" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <local:MultiSelectComboBox x:Name="BuyCityFilterCombo" Grid.Column="1" Width="170" Margin="0,0,8,0">
+                                <local:FilterOption Label="Totes les ciutats" Value="" IsChecked="True"/>
+                                <local:FilterOption Label="Bridgewatch" Value="Bridgewatch"/><local:FilterOption Label="Caerleon" Value="Caerleon"/>
+                                <local:FilterOption Label="Fort Sterling" Value="Fort Sterling"/><local:FilterOption Label="Lymhurst" Value="Lymhurst"/>
+                                <local:FilterOption Label="Martlock" Value="Martlock"/><local:FilterOption Label="Thetford" Value="Thetford"/>
+                                <local:FilterOption Label="Brecilien" Value="Brecilien"/><local:FilterOption Label="Black Market" Value="Black Market"/>
+                            </local:MultiSelectComboBox>
+                            <TextBlock Text="Venda" Grid.Column="2" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <local:MultiSelectComboBox x:Name="SellCityFilterCombo" Grid.Column="3" Width="170" Margin="0,0,8,0">
+                                <local:FilterOption Label="Totes les ciutats" Value="" IsChecked="True"/>
+                                <local:FilterOption Label="Bridgewatch" Value="Bridgewatch"/><local:FilterOption Label="Caerleon" Value="Caerleon"/>
+                                <local:FilterOption Label="Fort Sterling" Value="Fort Sterling"/><local:FilterOption Label="Lymhurst" Value="Lymhurst"/>
+                                <local:FilterOption Label="Martlock" Value="Martlock"/><local:FilterOption Label="Thetford" Value="Thetford"/>
+                                <local:FilterOption Label="Brecilien" Value="Brecilien"/><local:FilterOption Label="Black Market" Value="Black Market"/>
+                            </local:MultiSelectComboBox>
+                            <TextBlock Text="Nivell" Grid.Column="4" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <local:MultiSelectComboBox x:Name="TierFilterCombo" Grid.Column="5" Width="95" Margin="0,0,8,0">
+                                <local:FilterOption Label="Tots" Value="" IsChecked="True"/><local:FilterOption Label="T4" Value="T4"/>
+                                <local:FilterOption Label="T5" Value="T5"/><local:FilterOption Label="T6" Value="T6"/>
+                                <local:FilterOption Label="T7" Value="T7"/><local:FilterOption Label="T8" Value="T8"/>
+                            </local:MultiSelectComboBox>
+                            <TextBlock Text="Encanteri" Grid.Column="6" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <local:MultiSelectComboBox x:Name="EnchantmentFilterCombo" Grid.Column="7" Width="95" Margin="0,0,8,0">
+                                <local:FilterOption Label="Tots" Value="" IsChecked="True"/><local:FilterOption Label="0" Value="0"/>
+                                <local:FilterOption Label="1" Value="1"/><local:FilterOption Label="2" Value="2"/>
+                                <local:FilterOption Label="3" Value="3"/><local:FilterOption Label="4" Value="4"/>
+                            </local:MultiSelectComboBox>
+                            <TextBlock Text="Qualitat" Grid.Column="8" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <local:MultiSelectComboBox x:Name="QualityFilterCombo" Grid.Column="9" Width="75" Margin="0,0,8,0">
+                                <local:FilterOption Label="Totes" Value="" IsChecked="True"/><local:FilterOption Label="1" Value="1"/>
+                                <local:FilterOption Label="2" Value="2"/><local:FilterOption Label="3" Value="3"/>
+                                <local:FilterOption Label="4" Value="4"/><local:FilterOption Label="5" Value="5"/>
+                            </local:MultiSelectComboBox>
+                            <Button Content="Aplica filtres" Grid.Column="10" Click="ApplyOpportunityFilters_Click" Background="#24406B" Padding="10,3"/>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="2" Style="{StaticResource GridStyle}" ItemsSource="{Binding Flips}"
+                              LoadingRow="FlipsGrid_LoadingRow">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ITEM" Binding="{Binding ItemId}" Width="175"/>
+                            <DataGridTemplateColumn Header="ITEM" Width="205">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Image Source="{Binding Icon}" Width="60" Height="60"
+                                                   Margin="0,0,6,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <TextBlock Text="{Binding ItemId}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="NOM" Binding="{Binding Name}" Width="*"/>
                             <DataGridTextColumn Header="Q" Binding="{Binding Quality}" Width="35"/>
                             <DataGridTextColumn Header="COMPRA A" Binding="{Binding BuyCity}" Width="110"/>
@@ -78,14 +140,14 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="NET LISTAT" Binding="{Binding ListedNetProfit, StringFormat={}{0:N0}}" Width="80">
+                            <DataGridTextColumn Header="NET LISTAT" Binding="{Binding ListedNetProfit, StringFormat={}{0:N0}}" Width="95">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Foreground" Value="{Binding ListedBrush}"/>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="ROI LISTAT" Binding="{Binding ListedRoiPercent, StringFormat={}{0:0.0}%}" Width="75">
+                            <DataGridTextColumn Header="ROI LISTAT" Binding="{Binding ListedRoiPercent, StringFormat={}{0:0.0}%}" Width="95">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Foreground" Value="{Binding ListedBrush}"/>
@@ -114,13 +176,25 @@
                                    VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
 
-                    <DataGrid Grid.Row="1" Style="{StaticResource GridStyle}" ItemsSource="{Binding Prices}">
+                    <DataGrid Grid.Row="1" Style="{StaticResource GridStyle}" ItemsSource="{Binding Prices}"
+                              LoadingRow="PricesGrid_LoadingRow">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ITEM" Binding="{Binding ItemId}" Width="190"/>
+                            <DataGridTemplateColumn Header="ITEM" Width="220">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Image Source="{Binding Icon}" Width="60" Height="60"
+                                                   Margin="0,0,6,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <TextBlock Text="{Binding ItemId}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Q" Binding="{Binding Quality}" Width="35"/>
                             <DataGridTextColumn Header="CIUTAT" Binding="{Binding City}" Width="130"/>
-                            <DataGridTextColumn Header="VENDA MÍN (tu compres)" Binding="{Binding SellPriceMin, StringFormat={}{0:N0}}" Width="170"/>
+                            <DataGridTextColumn Header="Compra" Binding="{Binding SellPriceMin, StringFormat={}{0:N0}}" Width="170"/>
                             <DataGridTextColumn Header="DATA" Binding="{Binding SellDateText}" Width="140"/>
-                            <DataGridTextColumn Header="COMPRA MÀX (tu vens)" Binding="{Binding BuyPriceMax, StringFormat={}{0:N0}}" Width="180"/>
+                            <DataGridTextColumn Header="Venda" Binding="{Binding BuyPriceMax, StringFormat={}{0:N0}}" Width="180"/>
                             <DataGridTextColumn Header="DATA" Binding="{Binding BuyDateText}" Width="140"/>
                             <DataGridTextColumn Header="FONT" Binding="{Binding Source}" Width="*"/>
                         </DataGrid.Columns>
@@ -239,12 +313,15 @@
                         <TextBlock Grid.Row="8" Grid.Column="0" Text="Port d'ingesta" VerticalAlignment="Center" Margin="0,0,0,10"/>
                         <TextBlock Grid.Row="8" Grid.Column="1" x:Name="PortText" Text="5099" Margin="0,0,0,10" Foreground="{StaticResource MutedBrush}"/>
 
-                        <StackPanel Grid.Row="9" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,10">
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Objectes amb preus a la BD" VerticalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Grid.Row="9" Grid.Column="1" x:Name="ApiItemsText" Text="-" Margin="0,0,0,10" Foreground="{StaticResource MutedBrush}"/>
+
+                        <StackPanel Grid.Row="10" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,10">
                             <Button Content="Desar" Click="Save_Click" Background="#24406B"/>
                             <Button Content="Sincronitzar catàleg d'items" Click="SyncItems_Click" Margin="8,0,0,0"/>
                         </StackPanel>
 
-                        <TextBlock Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="2" TextWrapping="Wrap"
+                        <TextBlock Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="2" TextWrapping="Wrap"
                                    Foreground="{StaticResource MutedBrush}" FontSize="11.5" Margin="0,8,0,0"
                                    Text="El client local s'engega sense finestra (albiondata-client.exe -i http://localhost:5099 -nogui) i envia les dades a aquesta app. Si actives l'enviament públic, també rebrà el projecte AODP (mateixes dades, cap cost)."/>
                     </Grid>

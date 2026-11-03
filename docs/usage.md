@@ -21,6 +21,17 @@ The UI and logs are in Catalan (the tool is personal); this documentation is in 
 | **Local sniffer** | Start/stop the client, connect NATS, watch ingest status. |
 | **Settings** | Region, taxes, max investment, max age, minimum ROI, client path and watchlist. |
 
+Item icons come from the community render service (`render.albiononline.com`). They are
+downloaded only when a row becomes visible (~10–15 KB each) and cached in
+`Temp\icons` inside the project; deleting that folder is safe and only costs a
+re-download.
+
+The *Oportunitats* tab also has compact persistent selectors for **Compra**, **Venda**,
+**Nivell**, **Encanteri** and **Qualitat**. Choose a route such as
+`Martlock → Black Market`, optionally choose one tier, enchantment or quality, and press
+**Aplica filtres**. The level and enchantment are read from the item ID; no extra columns
+are needed. The selection is saved in the local SQLite settings and restored next time.
+
 At the bottom there is a log: every line says what happened (requests, ingests, errors).
 If something looks wrong, read that first.
 
@@ -51,6 +62,11 @@ need a buyer to show up.
    *Local sniffer* tab.
 4. When you want a full snapshot, **refresh the API** (carefully: see
    [Data sources](data-sources.md)).
+
+The app also runs a slow background catalogue exploration: every 11 minutes it asks the
+API for the next 100 catalogue items and stores their prices. This is independent of the
+watchlist and continues from its saved position after restarting the app.
+
 
 ## Configure taxes correctly
 

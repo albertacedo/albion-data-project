@@ -1,13 +1,33 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows.Media;
 using AlbionMarket.Core.Models;
 
 namespace AlbionMarket.App;
 
-public sealed class FlipRow
+public sealed class FlipRow : INotifyPropertyChanged
 {
+    private ImageSource? _icon;
+
     public string ItemId { get; init; } = "";
     public string Name { get; init; } = "";
     public int Quality { get; init; }
+
+    /// <summary>Filled in the background by <see cref="LoadIcon"/>.</summary>
+    public ImageSource? Icon
+    {
+        get => _icon;
+        private set
+        {
+            _icon = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Called when the grid realises the row (see <c>LoadingRow</c>).</summary>
+    public void LoadIcon() => ItemIcons.LoadAsync(ItemId, Quality, image => Icon = image);
+
     public string BuyCity { get; init; } = "";
     public int BuyPrice { get; init; }
     public string SellCity { get; init; } = "";
@@ -19,24 +39,51 @@ public sealed class FlipRow
     public double WorstAgeHours { get; init; }
     public string Source { get; init; } = "";
 
-    public System.Windows.Media.Brush InstantBrush =>
-        InstantNetProfit > 0 ? System.Windows.Media.Brushes.MediumSpringGreen
-                             : System.Windows.Media.Brushes.IndianRed;
+    public Brush InstantBrush =>
+        InstantNetProfit > 0 ? Brushes.MediumSpringGreen
+                             : Brushes.IndianRed;
 
-    public System.Windows.Media.Brush ListedBrush =>
-        ListedNetProfit > 0 ? System.Windows.Media.Brushes.MediumSpringGreen
-                            : System.Windows.Media.Brushes.IndianRed;
+    public Brush ListedBrush =>
+        ListedNetProfit > 0 ? Brushes.MediumSpringGreen
+                            : Brushes.IndianRed;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-public sealed class PriceRow
+public sealed class PriceRow : INotifyPropertyChanged
 {
+    private ImageSource? _icon;
+
     public string ItemId { get; init; } = "";
+    public int Quality { get; init; }
+
+    /// <summary>Filled in the background by <see cref="LoadIcon"/>.</summary>
+    public ImageSource? Icon
+    {
+        get => _icon;
+        private set
+        {
+            _icon = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public void LoadIcon() => ItemIcons.LoadAsync(ItemId, Quality, image => Icon = image);
+
     public string City { get; init; } = "";
     public int SellPriceMin { get; init; }
     public int BuyPriceMax { get; init; }
     public string SellDateText { get; init; } = "";
     public string BuyDateText { get; init; } = "";
     public string Source { get; init; } = "";
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 public sealed class OrderRow
@@ -81,6 +128,7 @@ public sealed class MainViewModel
     public PriceRow ToRow(MarketPrice p) => new()
     {
         ItemId = p.ItemId,
+        Quality = p.Quality,
         City = p.City,
         SellPriceMin = p.SellPriceMin,
         BuyPriceMax = p.BuyPriceMax,

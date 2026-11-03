@@ -8,6 +8,9 @@ Aplicacio/.vs/
 # Base de dades local (no es puja)
 Dades/
 
+# Caché temporal d'icones (es pot regenerar)
+Temp/
+
 # MkDocs
 site/
 .cache/

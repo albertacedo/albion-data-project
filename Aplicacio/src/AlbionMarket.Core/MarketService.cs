@@ -33,6 +33,8 @@ public sealed class MarketService : IAsyncDisposable
     };
 
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
+    private readonly CancellationTokenSource _explorerCts = new();
+    private Task? _explorerTask;
     private int _recomputeScheduled;
     private Process? _clientProcess;
 
@@ -50,6 +52,8 @@ public sealed class MarketService : IAsyncDisposable
     /// <summary>Start the local client and connect NATS as soon as the app opens.</summary>
     public bool AutoStart { get; set; } = true;
     public DateTime? LastRefreshUtc { get; private set; }
+    public const int CatalogBatchSize = 100;
+    public static readonly TimeSpan CatalogInterval = TimeSpan.FromMinutes(11);
 
     public event Action<List<Flip>>? FlipsChanged;
     public event Action? StateChanged;
@@ -84,6 +88,7 @@ public sealed class MarketService : IAsyncDisposable
         }
 
         await RecomputeFlipsAsync(ct).ConfigureAwait(false);
+        StartCatalogExplorer();
         StateChanged?.Invoke();
     }
 
@@ -175,7 +180,9 @@ public sealed class MarketService : IAsyncDisposable
         try
         {
             Log?.Invoke($"Actualitzant {Watchlist.Count} items des de {Api.BaseUrl}...");
-            var prices = await Api.GetPricesAsync(Watchlist, Locations.MainCities, new[] { 1 }, ct)
+            // Fetch every quality for the watchlist. Restricting this to quality 1
+            // made route filters appear to be missing most item variants.
+            var prices = await Api.GetPricesAsync(Watchlist, Locations.MainCities, new[] { 1, 2, 3, 4, 5 }, ct)
                 .ConfigureAwait(false);
 
             var usable = prices.Where(p => p.City.Length > 0).ToList();
@@ -197,6 +204,69 @@ public sealed class MarketService : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Slowly walks the full item catalogue instead of limiting API snapshots to
+    /// the user's watchlist. AODP Europe has recently allowed only one request per
+    /// ten-minute window, so the deliberate eleven-minute interval is conservative.
+    /// The cursor is stored in SQLite and survives restarts.
+    /// </summary>
+    private void StartCatalogExplorer()
+    {
+        if (_explorerTask is not null) return;
+        _explorerTask = Task.Run(() => CatalogExplorerLoopAsync(_explorerCts.Token));
+        Log?.Invoke($"Exploració API automàtica activada: un lot de {CatalogBatchSize} items cada 11 minuts.");
+    }
+
+    private async Task CatalogExplorerLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                await Task.Delay(CatalogInterval, ct).ConfigureAwait(false);
+                await RefreshCatalogBatchAsync(ct).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex) { Log?.Invoke($"Exploració API aturada: {ex.Message}"); }
+    }
+
+    private async Task RefreshCatalogBatchAsync(CancellationToken ct)
+    {
+        if (!await _refreshGate.WaitAsync(0, ct).ConfigureAwait(false))
+        {
+            Log?.Invoke("Exploració API ajornada: ja hi ha una actualització en curs.");
+            return;
+        }
+
+        try
+        {
+            var ids = await Db.GetItemIdsAsync(ct).ConfigureAwait(false);
+            if (ids.Count == 0) return;
+
+            var cursor = int.TryParse(Db.GetSetting("catalogCursor"), out var saved) ? saved : 0;
+            cursor = ((cursor % ids.Count) + ids.Count) % ids.Count;
+            var batch = ids.Skip(cursor).Take(CatalogBatchSize).ToList();
+            if (batch.Count == 0) return;
+
+            var prices = await Api.GetPricesAsync(batch, Locations.MainCities, new[] { 1, 2, 3, 4, 5 }, ct)
+                .ConfigureAwait(false);
+            var usable = prices.Where(p => p.City.Length > 0).ToList();
+            await Db.MergePricesAsync(usable, "api", ct).ConfigureAwait(false);
+
+            var next = (cursor + batch.Count) % ids.Count;
+            Db.SetSetting("catalogCursor", next.ToString(CultureInfo.InvariantCulture));
+            LastRefreshUtc = DateTime.UtcNow;
+            Log?.Invoke($"Exploració API: {cursor + 1}-{cursor + batch.Count} de {ids.Count} items; " +
+                        $"rebudes {usable.Count} files. Proper lot en 11 minuts.");
+            await RecomputeFlipsAsync(ct).ConfigureAwait(false);
+            StateChanged?.Invoke();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex) { Log?.Invoke($"Error en l'exploració API: {ex.Message}"); }
+        finally { _refreshGate.Release(); }
+    }
+
     public async Task<List<MarketPrice>> QueryItemAsync(string itemId, CancellationToken ct = default)
     {
         // Prefer the API for an on-demand search, then fall back to the cache.
@@ -207,6 +277,11 @@ public sealed class MarketService : IAsyncDisposable
             if (usable.Count > 0)
             {
                 await Db.MergePricesAsync(usable, "api", ct).ConfigureAwait(false);
+
+                // An on-demand query is a successful API round-trip too: the
+                // header should stop saying "dades en caché" after it.
+                LastRefreshUtc = DateTime.UtcNow;
+                StateChanged?.Invoke();
                 return usable;
             }
         }
@@ -384,6 +459,13 @@ public sealed class MarketService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _explorerCts.Cancel();
+        if (_explorerTask is not null)
+        {
+            try { await _explorerTask.ConfigureAwait(false); }
+            catch (OperationCanceledException) { }
+        }
+        _explorerCts.Dispose();
         StopLocalClient();
         if (Nats is not null) await Nats.DisposeAsync().ConfigureAwait(false);
         await Ingest.DisposeAsync().ConfigureAwait(false);

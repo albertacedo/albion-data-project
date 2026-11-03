@@ -27,6 +27,9 @@ That is: **one request per 10-minute window** at that moment, far stricter than 
 180 req/min the project documents. The app:
 
 - batches up to 100 items per request,
+- the background catalogue explorer sends one 100-item batch every 11 minutes and stores
+  its cursor in SQLite, so it eventually covers the full ~11,000-item catalogue without
+  hammering the API,
 - waits at least 1.2 s between requests,
 - on `429` waits until `ratelimit-reset` (up to 4 minutes),
 - always shows cached data in the meantime.
@@ -34,6 +37,13 @@ That is: **one request per 10-minute window** at that moment, far stricter than 
 !!! warning "Do not refresh in a loop"
     Every extra `fetch` can cost 10 minutes of blocking. For interactivity the sniffer and
     NATS already do the job.
+
+The app's **watchlist refresh** and **catalogue explorer** are separate. The former
+updates the configured watchlist immediately; the latter starts in the background and
+walks the complete item catalogue in 100-item batches every 11 minutes. With 11,132
+catalogue entries, one complete pass takes about 18 hours 40 minutes at the observed
+Europe limit. The cursor survives restarts.
+
 
 ## 2. Own sniffer (local ingest)
 

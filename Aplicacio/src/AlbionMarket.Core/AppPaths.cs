@@ -27,6 +27,12 @@ public static class AppPaths
 
     public static string DatabaseFile => Path.Combine(DataDir, "market.db");
 
+    /// <summary>
+    /// Downloaded item icons. Disposable cache kept inside the project so it is
+    /// easy to find and move together with the rest of this personal tool.
+    /// </summary>
+    public static string IconCacheDir => Path.Combine(Root, "Temp", "icons");
+
     public static string ForkedClientExe => Path.Combine(ClientDir, "albiondata-client.exe");
 
     /// <summary>

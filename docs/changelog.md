@@ -3,6 +3,22 @@
 Chronological log of decisions and verifications. Enough to pick the thread back up from
 anywhere without reading the code.
 
+## 2026-11-03 — Session 4: catalogue exploration, filters and icons
+
+- Added a background catalogue explorer: every 11 minutes it fetches the next 100 items
+  from the 11,132-item catalogue, all eight cities and qualities 1–5, with a persistent
+  SQLite cursor. The watchlist refresh remains separate.
+- Added item icons to the opportunity and price grids, with a project-local `Temp\icons`
+  cache and 60 px display size.
+- Added compact multi-select dark filters for buy/sell cities, tier, enchantment and
+  quality; selections are saved in SQLite. Added the visible count of distinct items with
+  market prices in Settings.
+- Kept market data indefinitely by user decision; the proposed automatic seven-day
+  deletion was removed before closing the session.
+
+Verification: `dotnet build` completed with 0 warnings and 0 errors; the WPF app started
+successfully after the multi-select control fix and was closed cleanly.
+
 ## 2026-11-02 — Session 3: end-to-end test, headless client, price unit fix
 
 ### Full test
